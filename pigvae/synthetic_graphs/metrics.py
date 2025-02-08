@@ -51,26 +51,54 @@ class Critic(torch.nn.Module):
         return metrics
 
 
+# class GraphReconstructionLoss(torch.nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.edge_loss = BCEWithLogitsLoss()
+
+#     def forward(self, graph_true, graph_pred):
+#         mask = graph_true.mask
+#         adj_mask = mask.unsqueeze(1) * mask.unsqueeze(2)
+
+#         edges_true = (graph_true.edge_features[adj_mask][:, 1] == 1).float()
+#         edges_pred = graph_pred.edge_features[adj_mask][:, 1]
+#         edge_loss = self.edge_loss(
+#             input=edges_pred,
+#             target=edges_true
+#         )
+#         loss = {
+#             "edge_loss": edge_loss,
+#             "loss": edge_loss
+#         }
+#         return loss
+
+
 class GraphReconstructionLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.edge_loss = BCEWithLogitsLoss()
+        self.node_loss = MSELoss() #BCEWithLogitsLoss() #MSE
 
     def forward(self, graph_true, graph_pred):
+        # Use the mask to identify valid nodes
         mask = graph_true.mask
-        adj_mask = mask.unsqueeze(1) * mask.unsqueeze(2)
 
-        edges_true = (graph_true.edge_features[adj_mask][:, 1] == 1).float()
-        edges_pred = graph_pred.edge_features[adj_mask][:, 1]
-        edge_loss = self.edge_loss(
-            input=edges_pred,
-            target=edges_true
+        # Extract the node features for the true and predicted graphs, filtered by the mask
+        nodes_true = graph_true.node_features[mask]
+        nodes_pred = graph_pred.node_features[mask]
+
+        # Compute the node-based loss
+        node_loss = self.node_loss(
+            input=nodes_pred,
+            target=nodes_true
         )
+
+        # Return the loss dictionary
         loss = {
-            "edge_loss": edge_loss,
-            "loss": edge_loss
+            "node_loss": node_loss,
+            "loss": node_loss
         }
         return loss
+
 
 
 class PropertyLoss(torch.nn.Module):

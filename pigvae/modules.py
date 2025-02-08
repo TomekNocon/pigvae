@@ -1,9 +1,20 @@
 import torch
+import torch.nn as nn
 from torch.nn import Linear, LayerNorm, Dropout
 from torch.nn.functional import relu, pad
 from pigvae.graph_transformer import Transformer, PositionalEncoding
 from pigvae.synthetic_graphs.data import DenseGraphBatch
+from .synthetic_graphs.custom_data import LaplacianGridEmbedding
+from .spectral_embeddings import (
+    CustomSpectralEmbedding,
+    NetworkXSpectralEmbedding,
+    SklearnSpectralEmbedding
+)
+import numpy as np
+import scipy.sparse as scs
 
+MEAN_NUM_NODES = 36
+STD_NUM_NODES = 0
 
 class GraphAE(torch.nn.Module):
     def __init__(self, hparams):
@@ -67,17 +78,30 @@ class GraphEncoder(torch.nn.Module):
             ppf_hidden_dim=hparams["graph_encoder_ppf_hidden_dim"],
             num_layers=hparams["graph_encoder_num_layers"],
         )
-        message_input_dim = 2 * (hparams["num_node_features"] + 1) + hparams["num_edge_features"] + 1
+        message_input_dim = 2 * (hparams["num_node_features"] + 1) + hparams["num_edge_features"] #+ 1
         self.fc_in = Linear(message_input_dim, hparams["graph_encoder_hidden_dim"])
         self.layer_norm = LayerNorm(hparams["graph_encoder_hidden_dim"])
         self.dropout = Dropout(0.1)
+        self.spectral_embeddings = NetworkXSpectralEmbedding(hparams['emb_dim'], hparams['grid_size'])
+        # self.grid_size = hparams['grid_size']
+        # self.laplacian_embeddings = LaplacianGridEmbedding(
+        #     hparams['grid_size'], hparams['emb_dim'])
+        # self.A = lat2W(self.grid_size, self.grid_size, rook=True).full()[0]
+        # self.sorted_eigenvecs = Laplacian()(self.A)
+        
+    # def add_laplacian_embeddings(self, node_features, sorted_eigenvecs):
+    #     batch, _, _ = node_features.shape
+    #     laplacian_emb = self.laplacian_embeddings(sorted_eigenvecs)
+    #     laplacian_emb = torch.tile(laplacian_emb, (batch, 1, 1)) 
+    #     return node_features + laplacian_emb
+        
 
     def add_emb_node_and_feature(self, node_features, edge_features, mask):
         node_dim, edge_dim = node_features.size(-1), edge_features.size(-1)
         node_features = pad(node_features, (0, 1, 1, 0))
-        edge_features = pad(edge_features, (0, 1, 1, 0, 1, 0))
-        edge_features[:, 0, :, edge_dim] = 1
-        edge_features[:, :, 0, edge_dim] = 1
+        # edge_features = pad(edge_features, (0, 1, 1, 0, 1, 0))
+        # edge_features[:, 0, :, edge_dim] = 1
+        # edge_features[:, :, 0, edge_dim] = 1
         mask = pad(mask, (1, 0), value=1)
         return node_features, edge_features, mask
 
@@ -89,7 +113,8 @@ class GraphEncoder(torch.nn.Module):
             (node_features.unsqueeze(2).repeat(1, 1, num_nodes, 1),
              node_features.unsqueeze(1).repeat_interleave(num_nodes, dim=1)),
             dim=-1)
-        x = torch.cat((edge_features, node_features_combined), dim=-1)
+        # x = torch.cat((edge_features, node_features_combined), dim=-1)
+        x = node_features_combined
         x = self.layer_norm(self.dropout(self.fc_in(x)))
         return x, edge_mask
 
@@ -99,6 +124,9 @@ class GraphEncoder(torch.nn.Module):
         return graph_emb, node_features
 
     def forward(self, node_features, edge_features, mask):
+        # node_features = self.add_laplacian_embeddings(node_features,
+        # self.sorted_eigenvecs)
+        node_features = self.spectral_embeddings(node_features)
         x, edge_mask = self.init_message_matrix(node_features, edge_features, mask)
         x = self.graph_transformer(x, mask=edge_mask)
         graph_emb, node_features = self.read_out_message_matrix(x)
@@ -145,10 +173,11 @@ class GraphDecoder(torch.nn.Module):
         num_nodes = x.size(1)
         node_features = torch.diagonal(x, dim1=1, dim2=2).transpose(1, 2)
         node_features = self.node_fc_out(node_features)
-        edge_features = self.edge_fc_out(x)
-        self_edge_mask = torch.eye(num_nodes, num_nodes, device=node_features.device).bool().unsqueeze(-1)
-        edge_features.masked_fill_(self_edge_mask, 0)
-        edge_features = (edge_features + edge_features.permute(0, 2, 1, 3)) / 2
+        edge_features = torch.tensor([])
+        # edge_features = self.edge_fc_out(x)
+        # self_edge_mask = torch.eye(num_nodes, num_nodes, device=node_features.device).bool().unsqueeze(-1)
+        # edge_features.masked_fill_(self_edge_mask, 0)
+        # edge_features = (edge_features + edge_features.permute(0, 2, 1, 3)) / 2
         return node_features, edge_features
 
     def forward(self, graph_emb, perm, mask):
@@ -270,3 +299,17 @@ class PropertyPredictor(torch.nn.Module):
         x = self.layer_norm2(self.dropout(relu(self.w_2(x))))
         x = self.w_3(x)
         return x
+    
+class Laplacian(nn.Module):
+    
+    def __init__(self):
+         super().__init__()
+        
+    def forward(selef, A):
+        A = scs.csr_matrix(A)
+        L = LaplacianGridEmbedding.get_graph_laplacian(A)
+        eigenvals, eigenvecs = np.linalg.eigh(L)
+        sorted_eigenvecs = eigenvecs[:, np.argsort(eigenvals)]
+        sorted_eigenvecs = torch.tensor(sorted_eigenvecs, dtype=torch.float32)
+        return sorted_eigenvecs
+    

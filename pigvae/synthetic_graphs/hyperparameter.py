@@ -39,6 +39,7 @@ def add_arguments(parser):
     # GENERAL GRAPH PROPERTIES
     parser.add_argument("--num_node_features", default=1, type=int)
     parser.add_argument("--num_edge_features", default=6, type=int)
+    parser.add_argument("--grid_size", default=6, type=int)
 
     # GRAPH ENCODER
     parser.add_argument("--emb_dim", default=64, type=int)

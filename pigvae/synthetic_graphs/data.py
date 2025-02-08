@@ -97,8 +97,7 @@ class BinomialGraphDataset(Dataset):
         if self.p_min == self.p_max:
             p = self.p_min
         else:
-            p = np.random.randint(low=self.p_min, high=self.p_max)
-        p = np.random.uniform(low=self.p_min, high=self.p_max)
+            p = np.random.uniform(low=self.p_min, high=self.p_max)
         g = binomial_graph(n, p)
         if self.pyg:
             g = from_networkx(g)

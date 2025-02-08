@@ -1,0 +1,43 @@
+# Ignore compiled Python files
+*.pyc
+__pycache__
+
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore system files (MacOS, Windows, etc.)
+.DS_Store
+Thumbs.db
+
+# Ignore IDE and editor specific files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Ignore log files
+*.log
+
+# Ignore all files in a directory except one specific file
+dir/*               # Ignore all files in 'dir'
+!dir/important.txt  # Except 'important.txt'
+
+# Ignore specific file types
+*.zip
+*.tar.gz
+
+# Ignore all files except those with specific extensions
+*.*               # Ignore all files
+!*.txt            # Except for .txt files
+
+# Ignore data folder
+data/
+# Ignore PIGVAE folder
+PIGVAE/
+# Ignore run0 folder
+run0/
+# Ignore wandb folder
+wandb/
+
+# Ignore egg-info directories
+*.egg-info/

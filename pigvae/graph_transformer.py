@@ -18,6 +18,12 @@ class Transformer(torch.nn.Module):
         self.pff_layers = torch.nn.ModuleList([
             PositionwiseFeedForward(hidden_dim, ppf_hidden_dim)
             for _ in range(num_layers)])
+    #     self.init_weights()  # Apply custom weight initialization
+        
+    # def init_weights(self):
+    #     for name, param in self.named_parameters():
+    #         if 'weight' in name and param.data.dim() == 2:
+    #             torch.nn.init.kaiming_uniform_(param)
 
     def forward(self, x, mask):
         for i in range(self.num_layers):

@@ -72,8 +72,8 @@ class GraphEncoder(torch.nn.Module):
         self.posiotional_embedding = PositionalEncoding(32)
         self.graph_transformer = Transformer(
             hidden_dim=hparams["graph_encoder_hidden_dim"],
-            k_dim=hparams["graph_encoder_k_dim"],
-            v_dim=hparams["graph_encoder_v_dim"],
+            # k_dim=hparams["graph_encoder_k_dim"],
+            # v_dim=hparams["graph_encoder_v_dim"],
             num_heads=hparams["graph_encoder_num_heads"],
             ppf_hidden_dim=hparams["graph_encoder_ppf_hidden_dim"],
             num_layers=hparams["graph_encoder_num_layers"],
@@ -140,8 +140,8 @@ class GraphDecoder(torch.nn.Module):
         self.posiotional_embedding = PositionalEncoding(hparams["graph_decoder_pos_emb_dim"])
         self.graph_transformer = Transformer(
             hidden_dim=hparams["graph_decoder_hidden_dim"],
-            k_dim=hparams["graph_decoder_k_dim"],
-            v_dim=hparams["graph_decoder_v_dim"],
+            # k_dim=hparams["graph_decoder_k_dim"],
+            # v_dim=hparams["graph_decoder_v_dim"],
             num_heads=hparams["graph_decoder_num_heads"],
             ppf_hidden_dim=hparams["graph_decoder_ppf_hidden_dim"],
             num_layers=hparams["graph_decoder_num_layers"],

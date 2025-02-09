@@ -90,12 +90,12 @@ def main(hparams):
     # Define trainer
     trainer = pl.Trainer(
         logger=wandb_logger,
-        val_check_interval=1, #hparams.eval_freq if not hparams.test else 100,
+        val_check_interval= 1, # hparams.eval_freq if not hparams.test else 100,
         accelerator="cpu",
         callbacks=[lr_logger, checkpoint_callback],
         precision=hparams.precision,
         max_epochs=hparams.num_epochs,
-        log_every_n_steps=10,
+        log_every_n_steps=5,
         # gradient_clip_val=0.1,
         # terminate_on_nan=True,
         # reload_dataloaders_every_epoch=True, # https://github.com/Lightning-AI/pytorch-lightning/discussions/7372
